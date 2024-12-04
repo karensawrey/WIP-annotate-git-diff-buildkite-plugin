@@ -18,5 +18,6 @@ steps:
             - lib/**
 
   - label: ":testtube: Test the plugin functionality"
+    command: echo "testing the plugin"
     plugins:
       - ssh://git@github.com/mcncl/git-diff-buildkite-plugin.git: ~
