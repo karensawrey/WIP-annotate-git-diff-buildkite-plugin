@@ -4,7 +4,7 @@ A Buildkite plugin that shows the git diff between the current commit and its pa
 
 ## Example
 
-Add the following to your \`pipeline.yml\`:
+Add the following to your `pipeline.yml`:
 
 ```yaml
 steps:
@@ -17,11 +17,11 @@ steps:
 
 ## Configuration
 
-### \`context\` (optional)
-The annotation context. Default: \`git-diff\`
+### `context` (optional)
+The annotation context. Default: `git-diff`
 
-### \`format\` (optional)
-The output format for the diff. Can be either \`markdown\` or \`diff\`. Default: \`markdown\`
+### `format` (optional)
+The output format for the diff. Can be either `markdown` or `diff`. Default: `markdown`
 
 ## Development
 
