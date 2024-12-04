@@ -1,14 +1,15 @@
-name: Buildkite Plugin
-description: Exceptional functionality
-author: https://github.com/buildkite-plugins
+name: Annotate Git Diff
+description: Shows git diff between current and previous commit as a build annotation
+author: github.com/mcncl
 requirements:
-  - bash
+  - git
 configuration:
   properties:
-    mandatory:
+    context:
       type: string
-    optional:
+      default: "git-diff"
+    format:
       type: string
-  required:
-    - mandatory
+      enum: ["markdown", "diff"]
+      default: "markdown"
   additionalProperties: false
