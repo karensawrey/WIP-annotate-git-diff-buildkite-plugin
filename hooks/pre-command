@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PLUGIN_CONTEXT=${BUILDKITE_PLUGIN_GIT_DIFF_CONTEXT:-"git-diff"}
+PLUGIN_FORMAT=${BUILDKITE_PLUGIN_GIT_DIFF_FORMAT:-"markdown"}
+
+CURRENT_SHA=${BUILDKITE_COMMIT}
+PREVIOUS_SHA=$(git rev-parse "${CURRENT_SHA}^1")
+
+# Generate the diff
+if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
+  DIFF_OUTPUT=$(git diff --color=never "${PREVIOUS_SHA}" "${CURRENT_SHA}" | while IFS= read -r line; do
+    # Escape any markdown special characters
+    line=${line//\`/\\\`}
+    line=${line//\*/\\\*}
+    line=${line//\#/\\\#}
+    
+    # Add syntax highlighting markers
+    if [[ "${line}" =~ ^(\+\+\+|\-\-\-) ]]; then
+      echo "${line}"
+    elif [[ "${line}" =~ ^\+ ]]; then
+      echo ":green_heart: ${line}"
+    elif [[ "${line}" =~ ^\- ]]; then
+      echo ":x: ${line}"
+    else
+      echo "${line}"
+    fi
+  done)
+  
+  # Create markdown code block
+  DIFF_OUTPUT="### Git Diff between ${PREVIOUS_SHA:0:8} and ${CURRENT_SHA:0:8}\n\`\`\`diff\n${DIFF_OUTPUT}\n\`\`\`"
+else
+  # Raw diff format
+  DIFF_OUTPUT=$(git diff --color=never "${PREVIOUS_SHA}" "${CURRENT_SHA}")
+fi
+
+# Create the annotation
+buildkite-agent annotate "${DIFF_OUTPUT}" \
+  --context "${PLUGIN_CONTEXT}" \
+  --style "info" \
+  --append
