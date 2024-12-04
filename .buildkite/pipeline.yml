@@ -16,3 +16,7 @@ steps:
           files:
             - hooks/**
             - lib/**
+
+  - label: ":testtube: Test the plugin functionality"
+    plugins:
+      - ssh://git@github.com/mcncl/git-diff-buildkite-plugin.git: ~
