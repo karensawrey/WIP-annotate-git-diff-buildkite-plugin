@@ -1,73 +1,68 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env bats
 
-# Default configuration
-PLUGIN_CONTEXT=${BUILDKITE_PLUGIN_GIT_DIFF_CONTEXT:-"git-diff"}
-PLUGIN_FORMAT=${BUILDKITE_PLUGIN_GIT_DIFF_FORMAT:-"markdown"}
-PLUGIN_COMPARE_BRANCH=${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-"main"}
-PLUGIN_INCLUDE_MERGE_BASE=${BUILDKITE_PLUGIN_GIT_DIFF_INCLUDE_MERGE_BASE:-"true"}
+load '/usr/local/lib/bats/load.bash'
 
-# Ensure we have the latest version of the comparison branch
-git fetch origin "${PLUGIN_COMPARE_BRANCH}"
+# Mock git
+function git() {
+  case "${1}" in
+    "fetch")
+      echo "Fetching ${2}/${3}"
+      ;;
+    "merge-base")
+      echo "merge-base-sha"
+      ;;
+    "rev-parse")
+      echo "compare-sha"
+      ;;
+    "diff")
+      if [[ "${1}" == "--numstat" ]]; then
+        echo "1    2    file1.txt"
+        echo "3    4    file2.txt"
+      else
+        echo "diff --git a/file.txt b/file.txt"
+        echo "index 1234567..89abcdef 100644"
+        echo "--- a/file.txt"
+        echo "+++ b/file.txt"
+        echo "-old line"
+        echo "+new line"
+      fi
+      ;;
+  esac
+}
 
-CURRENT_SHA=${BUILDKITE_COMMIT}
+# Mock buildkite-agent
+function buildkite-agent() {
+  echo "Annotating build with diff"
+}
 
-if [[ "${PLUGIN_INCLUDE_MERGE_BASE}" == "true" ]]; then
-  # Find the merge-base (common ancestor) between current commit and target branch
-  COMPARE_SHA=$(git merge-base "origin/${PLUGIN_COMPARE_BRANCH}" "${CURRENT_SHA}")
-else
-  # Use the head of the target branch
-  COMPARE_SHA=$(git rev-parse "origin/${PLUGIN_COMPARE_BRANCH}")
-fi
+@test "Creates annotation with default settings" {
+  export BUILDKITE_COMMIT="current-sha"
+  export BUILDKITE_BRANCH="feature-branch"
 
-# Generate the diff
-if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
-  # Create header with branch information
-  HEADER="## Git Diff: '${BUILDKITE_BRANCH}' vs '${PLUGIN_COMPARE_BRANCH}'\n"
-  HEADER+="Comparing changes between ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}\n\n"
+  run "$PWD/hooks/pre-command"
 
-  # Generate a more readable markdown-formatted diff
-  DIFF_OUTPUT=$(git diff --color=never "${COMPARE_SHA}" "${CURRENT_SHA}" | while IFS= read -r line; do
-    # Escape any markdown special characters
-    line=${line//\`/\\\`}
-    line=${line//\*/\\\*}
-    line=${line//\#/\\\#}
+  assert_success
+  assert_output --partial "Annotating build with diff"
+}
 
-    # Add syntax highlighting markers
-    if [[ "${line}" =~ ^(\+\+\+|\-\-\-) ]]; then
-      echo "${line}"
-    elif [[ "${line}" =~ ^\+ ]]; then
-      echo ":green_heart: ${line}"
-    elif [[ "${line}" =~ ^\- ]]; then
-      echo ":x: ${line}"
-    else
-      echo "${line}"
-    fi
-  done)
+@test "Respects custom branch comparison" {
+  export BUILDKITE_COMMIT="current-sha"
+  export BUILDKITE_BRANCH="feature-branch"
+  export BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH="develop"
 
-  # Create markdown code block with header
-  DIFF_OUTPUT="${HEADER}\`\`\`diff\n${DIFF_OUTPUT}\n\`\`\`"
+  run "$PWD/hooks/pre-command"
 
-  # Add summary of changes
-  STATS=$(git diff --numstat "${COMPARE_SHA}" "${CURRENT_SHA}" | awk '
-    BEGIN { additions = 0; deletions = 0; files = 0 }
-    {
-      additions += $1;
-      deletions += $2;
-      files += 1
-    }
-    END {
-      print files " files changed, " additions " insertions(+), " deletions " deletions(-)"
-    }
-  ')
-  DIFF_OUTPUT="${DIFF_OUTPUT}\n\n**Summary:** ${STATS}"
-else
-  # Raw diff format
-  DIFF_OUTPUT=$(git diff --color=never "${COMPARE_SHA}" "${CURRENT_SHA}")
-fi
+  assert_success
+  assert_output --partial "Annotating build with diff"
+}
 
-# Create the annotation
-buildkite-agent annotate "${DIFF_OUTPUT}" \
-  --context "${PLUGIN_CONTEXT}" \
-  --style "info" \
-  --append
+@test "Works with merge-base disabled" {
+  export BUILDKITE_COMMIT="current-sha"
+  export BUILDKITE_BRANCH="feature-branch"
+  export BUILDKITE_PLUGIN_GIT_DIFF_INCLUDE_MERGE_BASE="false"
+
+  run "$PWD/hooks/pre-command"
+
+  assert_success
+  assert_output --partial "Annotating build with diff"
+}
