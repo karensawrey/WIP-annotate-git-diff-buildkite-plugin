@@ -1,5 +1,5 @@
 name: Annotate Git Diff
-description: Shows git diff between current and previous commit as a build annotation
+description: Shows git diff between current commit and target branch as a build annotation
 author: github.com/mcncl
 requirements:
   - git
@@ -12,4 +12,10 @@ configuration:
       type: string
       enum: ["markdown", "diff"]
       default: "markdown"
+    compare_branch:
+      type: string
+      default: "main"
+    include_merge_base:
+      type: boolean
+      default: true
   additionalProperties: false

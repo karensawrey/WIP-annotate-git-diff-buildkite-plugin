@@ -1,20 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Default configuration
 PLUGIN_CONTEXT=${BUILDKITE_PLUGIN_GIT_DIFF_CONTEXT:-"git-diff"}
 PLUGIN_FORMAT=${BUILDKITE_PLUGIN_GIT_DIFF_FORMAT:-"markdown"}
+PLUGIN_COMPARE_BRANCH=${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-"main"}
+PLUGIN_INCLUDE_MERGE_BASE=${BUILDKITE_PLUGIN_GIT_DIFF_INCLUDE_MERGE_BASE:-"true"}
+
+# Ensure we have the latest version of the comparison branch
+git fetch origin "${PLUGIN_COMPARE_BRANCH}"
 
 CURRENT_SHA=${BUILDKITE_COMMIT}
-PREVIOUS_SHA=$(git rev-parse "${CURRENT_SHA}^1")
+
+if [[ "${PLUGIN_INCLUDE_MERGE_BASE}" == "true" ]]; then
+  # Find the merge-base (common ancestor) between current commit and target branch
+  COMPARE_SHA=$(git merge-base "origin/${PLUGIN_COMPARE_BRANCH}" "${CURRENT_SHA}")
+else
+  # Use the head of the target branch
+  COMPARE_SHA=$(git rev-parse "origin/${PLUGIN_COMPARE_BRANCH}")
+fi
 
 # Generate the diff
 if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
-  DIFF_OUTPUT=$(git diff --color=never "${PREVIOUS_SHA}" "${CURRENT_SHA}" | while IFS= read -r line; do
+  # Create header with branch information
+  HEADER="## Git Diff: '${BUILDKITE_BRANCH}' vs '${PLUGIN_COMPARE_BRANCH}'\n"
+  HEADER+="Comparing changes between ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}\n\n"
+
+  # Generate a more readable markdown-formatted diff
+  DIFF_OUTPUT=$(git diff --color=never "${COMPARE_SHA}" "${CURRENT_SHA}" | while IFS= read -r line; do
     # Escape any markdown special characters
     line=${line//\`/\\\`}
     line=${line//\*/\\\*}
     line=${line//\#/\\\#}
-    
+
     # Add syntax highlighting markers
     if [[ "${line}" =~ ^(\+\+\+|\-\-\-) ]]; then
       echo "${line}"
@@ -26,12 +44,26 @@ if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
       echo "${line}"
     fi
   done)
-  
-  # Create markdown code block
-  DIFF_OUTPUT="### Git Diff between ${PREVIOUS_SHA:0:8} and ${CURRENT_SHA:0:8}\n\`\`\`diff\n${DIFF_OUTPUT}\n\`\`\`"
+
+  # Create markdown code block with header
+  DIFF_OUTPUT="${HEADER}\`\`\`diff\n${DIFF_OUTPUT}\n\`\`\`"
+
+  # Add summary of changes
+  STATS=$(git diff --numstat "${COMPARE_SHA}" "${CURRENT_SHA}" | awk '
+    BEGIN { additions = 0; deletions = 0; files = 0 }
+    {
+      additions += $1;
+      deletions += $2;
+      files += 1
+    }
+    END {
+      print files " files changed, " additions " insertions(+), " deletions " deletions(-)"
+    }
+  ')
+  DIFF_OUTPUT="${DIFF_OUTPUT}\n\n**Summary:** ${STATS}"
 else
   # Raw diff format
-  DIFF_OUTPUT=$(git diff --color=never "${PREVIOUS_SHA}" "${CURRENT_SHA}")
+  DIFF_OUTPUT=$(git diff --color=never "${COMPARE_SHA}" "${CURRENT_SHA}")
 fi
 
 # Create the annotation
