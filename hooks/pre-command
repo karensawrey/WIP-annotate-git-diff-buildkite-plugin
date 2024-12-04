@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Default configuration
 PLUGIN_CONTEXT=${BUILDKITE_PLUGIN_GIT_DIFF_CONTEXT:-"git-diff"}
 PLUGIN_FORMAT=${BUILDKITE_PLUGIN_GIT_DIFF_FORMAT:-"markdown"}
 PLUGIN_COMPARE_BRANCH=${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-"main"}
 PLUGIN_INCLUDE_MERGE_BASE=${BUILDKITE_PLUGIN_GIT_DIFF_INCLUDE_MERGE_BASE:-"true"}
 
+# Get current SHA
 CURRENT_SHA=${BUILDKITE_COMMIT}
 
 if [ -n "${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
@@ -28,30 +28,30 @@ fi
 # Generate the diff
 if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
   # Create header with branch information
-  HEADER="## Git Diff: '${BUILDKITE_BRANCH}' vs '${PLUGIN_COMPARE_BRANCH}'\n"
-  HEADER+="Comparing changes between ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}\n\n"
+  if [ -n "${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
+    HEADER="### Git Diff: '${BUILDKITE_BRANCH}' vs '${PLUGIN_COMPARE_BRANCH}'"
+  else
+    HEADER="### Git Diff: Previous commit"
+  fi
+
+  HEADER+="\nComparing changes between ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}"
 
   # Generate a more readable markdown-formatted diff
   DIFF_OUTPUT=$(git diff --color=never "${COMPARE_SHA}" "${CURRENT_SHA}" | while IFS= read -r line; do
-    # Escape any markdown special characters
-    line=${line//\`/\\\`}
-    line=${line//\*/\\\*}
-    line=${line//\#/\\\#}
-
     # Add syntax highlighting markers
-    if [[ "${line}" =~ ^(\+\+\+|\-\-\-) ]]; then
-      echo "${line}"
+    if [[ "${line}" =~ ^diff|^index|^@@|^\+\+\+|^\-\-\- ]]; then
+      printf "%s\n" "${line}"
     elif [[ "${line}" =~ ^\+ ]]; then
-      echo ":green_heart: ${line}"
+      printf "💚 %s\n" "${line}"
     elif [[ "${line}" =~ ^\- ]]; then
-      echo ":x: ${line}"
+      printf "❌ %s\n" "${line}"
     else
-      echo "${line}"
+      printf "%s\n" "${line}"
     fi
   done)
 
-  # Create markdown code block with header
-  DIFF_OUTPUT="${HEADER}\`\`\`diff\n${DIFF_OUTPUT}\n\`\`\`"
+  # Combine header, diff, and summary
+  FULL_OUTPUT="${HEADER}\n\n\`\`\`diff\n${DIFF_OUTPUT}\`\`\`"
 
   # Add summary of changes
   STATS=$(git diff --numstat "${COMPARE_SHA}" "${CURRENT_SHA}" | awk '
