@@ -1,62 +1,36 @@
-# Template Buildkite Plugin [![Build status](https://badge.buildkite.com/d673030645c7f3e7e397affddd97cfe9f93a40547ed17b6dc5.svg)](https://buildkite.com/buildkite/plugins-template)
+# Git Diff Buildkite Plugin
 
-A Buildkite plugin for something awesome
+A Buildkite plugin that shows the git diff between the current commit and its parent as a build annotation.
 
-## Options
+## Example
 
-These are all the options available to configure this plugin's behaviour.
-
-### Required
-
-#### `mandatory` (string)
-
-A great description of what this is supposed to do.
-
-### Optional
-
-#### `optional` (string)
-
-Describe how the plugin behaviour changes if this option is not specified, allowed values and its default.
-
-## Examples
-
-Show how your plugin is to be used
+Add the following to your \`pipeline.yml\`:
 
 ```yaml
 steps:
-  - label: "🔨 Running plugin"
-    command: "echo template plugin"
+  - command: echo "Running with git diff..."
     plugins:
-      - template#v1.0.0:
-          mandatory: "value"
+      - git-diff#v1.0.0:
+          context: "my-diff"  # optional
+          format: "markdown"  # optional (markdown|diff)
 ```
 
-## And with other options as well
+## Configuration
 
-If you want to change the plugin behaviour:
+### \`context\` (optional)
+The annotation context. Default: \`git-diff\`
 
-```yaml
-steps:
-  - label: "🔨 Running plugin"
-    command: "echo template plugin with options"
-    plugins:
-      - template#v1.0.0:
-          mandatory: "value"
-          optional: "example"
-```
+### \`format\` (optional)
+The output format for the diff. Can be either \`markdown\` or \`diff\`. Default: \`markdown\`
 
-## ⚒ Developing
+## Development
 
-You can use the [bk cli](https://github.com/buildkite/cli) to run the [pipeline](.buildkite/pipeline.yml) locally:
+To run the tests:
 
 ```bash
-bk local run
+docker-compose run --rm tests
 ```
 
-## 👩‍💻 Contributing
+## License
 
-Your policy on how to contribute to the plugin!
-
-## 📜 License
-
-The package is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+MIT
