@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Default configuration
 PLUGIN_CONTEXT=${BUILDKITE_PLUGIN_GIT_DIFF_CONTEXT:-"git-diff"}
 PLUGIN_FORMAT=${BUILDKITE_PLUGIN_GIT_DIFF_FORMAT:-"markdown"}
 PLUGIN_COMPARE_BRANCH=${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-"main"}
@@ -23,22 +24,20 @@ if [ -n "${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
 else
     # If no compare_branch is set, compare against previous commit
     COMPARE_SHA=$(git rev-parse "${CURRENT_SHA}^1")
-fi
 
 # Generate the diff
 if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
-  # Create header with branch information
+  # Generate the diff
+if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
+  # Create header
   if [ -n "${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
     HEADER="### Git Diff: '${BUILDKITE_BRANCH}' vs '${PLUGIN_COMPARE_BRANCH}'"
   else
-    HEADER="### Git Diff: Previous commit"
+    HEADER="### Git Diff: Changes in ${BUILDKITE_BRANCH}"
   fi
 
-  HEADER+="\nComparing changes between ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}"
-
-  # Generate a more readable markdown-formatted diff
+  # Process the diff output
   DIFF_OUTPUT=$(git diff --color=never "${COMPARE_SHA}" "${CURRENT_SHA}" | while IFS= read -r line; do
-    # Add syntax highlighting markers
     if [[ "${line}" =~ ^diff|^index|^@@|^\+\+\+|^\-\-\- ]]; then
       printf "%s\n" "${line}"
     elif [[ "${line}" =~ ^\+ ]]; then
@@ -50,8 +49,22 @@ if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
     fi
   done)
 
-  # Combine header, diff, and summary
-  FULL_OUTPUT="${HEADER}\n\n\`\`\`diff\n${DIFF_OUTPUT}\`\`\`"
+  # Get diff statistics
+  STATS=$(git diff --numstat "${COMPARE_SHA}" "${CURRENT_SHA}" | awk '
+    BEGIN { files = 0; insertions = 0; deletions = 0 }
+    { files += 1; insertions += $1; deletions += $2 }
+    END { printf "%d files changed, %d insertions(+), %d deletions(-)", files, insertions, deletions }
+  ')
+
+  # Construct the complete output
+  ANNOTATION="${HEADER}
+Changes between ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}
+
+\`\`\`diff
+${DIFF_OUTPUT}
+\`\`\`
+
+**Summary:** ${STATS}"
 
   # Add summary of changes
   STATS=$(git diff --numstat "${COMPARE_SHA}" "${CURRENT_SHA}" | awk '
@@ -71,6 +84,7 @@ else
   DIFF_OUTPUT=$(git diff --color=never "${COMPARE_SHA}" "${CURRENT_SHA}")
 fi
 
+# Create the annotation
 buildkite-agent annotate "${DIFF_OUTPUT}" \
   --context "${PLUGIN_CONTEXT}" \
   --style "info" \
