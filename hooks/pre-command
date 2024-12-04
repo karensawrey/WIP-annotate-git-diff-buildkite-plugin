@@ -23,6 +23,7 @@ if [ -n "${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
 else
     # If no compare_branch is set, compare against previous commit
     COMPARE_SHA=$(git rev-parse "${CURRENT_SHA}^1")
+fi
 
 # Generate the diff
 if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
