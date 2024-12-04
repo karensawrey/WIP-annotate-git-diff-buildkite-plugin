@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # Default configuration
@@ -12,7 +12,7 @@ CURRENT_SHA=${BUILDKITE_COMMIT}
 if [ -n "${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
     # If compare_branch is set, fetch and compare against it
     git fetch origin "${PLUGIN_COMPARE_BRANCH}"
-    
+
     if [[ "${PLUGIN_INCLUDE_MERGE_BASE}" == "true" ]]; then
         # Find the merge-base (common ancestor) between current commit and target branch
         COMPARE_SHA=$(git merge-base "origin/${PLUGIN_COMPARE_BRANCH}" "${CURRENT_SHA}")
@@ -27,16 +27,16 @@ else
 # Generate the diff
 if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
   # Create header with branch information
-  HEADER="### Git Diff: '${BUILDKITE_BRANCH}' vs '${PLUGIN_COMPARE_BRANCH}'\n"
+  HEADER="## Git Diff: '${BUILDKITE_BRANCH}' vs '${PLUGIN_COMPARE_BRANCH}'\n"
   HEADER+="Comparing changes between ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}\n\n"
-  
+
   # Generate a more readable markdown-formatted diff
   DIFF_OUTPUT=$(git diff --color=never "${COMPARE_SHA}" "${CURRENT_SHA}" | while IFS= read -r line; do
     # Escape any markdown special characters
     line=${line//\`/\\\`}
     line=${line//\*/\\\*}
     line=${line//\#/\\\#}
-    
+
     # Add syntax highlighting markers
     if [[ "${line}" =~ ^(\+\+\+|\-\-\-) ]]; then
       echo "${line}"
@@ -48,7 +48,7 @@ if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
       echo "${line}"
     fi
   done)
-  
+
   # Create markdown code block with header
   DIFF_OUTPUT="${HEADER}\`\`\`diff\n${DIFF_OUTPUT}\n\`\`\`"
 
