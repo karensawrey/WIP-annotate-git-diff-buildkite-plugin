@@ -8,12 +8,12 @@ steps:
           folders:
             - tests
 
-  - label: ":sparkles: Lint"
+ - label: ":sparkles: Lint"
     plugins:
       - plugin-linter#v3.3.0:
           id: annotate-git-diff
 
-  - label: ":shell: Shellcheck"
+ - label: ":shell: Shellcheck"
     plugins:
       - shellcheck#v1.4.0:
           files:
