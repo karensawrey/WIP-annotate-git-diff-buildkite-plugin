@@ -32,12 +32,12 @@ trap 'rm -f "${TEMP_MD}"' EXIT
 if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
     # Add header
     if [ -n "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
-        echo "### Git Diff: '${BUILDKITE_BRANCH}' vs '${PLUGIN_COMPARE_BRANCH}'" > "${TEMP_MD}"
+        HEADER="Comparing changes between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} to ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}\n"
     else
-        echo "### Git Diff: Previous commit" > "${TEMP_MD}"
+        HEADER="Comparing changes between ${COMPARE_SHA:0:8} to ${CURRENT_SHA:0:8}\n"
     fi
 
-    echo -e "\nComparing changes between ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}\n" >> "${TEMP_MD}"
+    echo -e "${HEADER}" >> "${TEMP_MD}"
 
     # Add diff with terminal colors
     {
