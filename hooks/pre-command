@@ -7,30 +7,42 @@ set -euo pipefail
 # Get plugin configuration
 PLUGIN_CONTEXT=$(plugin_read_config "CONTEXT" "git-diff")
 PLUGIN_FORMAT=$(plugin_read_config "FORMAT" "markdown")
-PLUGIN_COMPARE_BRANCH=$(plugin_read_config "COMPARE_BRANCH" "main")
+PLUGIN_COMPARE_BRANCH=$(plugin_read_config "COMPARE_BRANCH" "")  # Default to empty
 PLUGIN_INCLUDE_MERGE_BASE=$(plugin_read_config "INCLUDE_MERGE_BASE" "true")
 
 # Get current SHA
 CURRENT_SHA=${BUILDKITE_COMMIT}
 
-# Get target branch SHA
-git fetch origin "${PLUGIN_COMPARE_BRANCH}"
-TARGET_BRANCH_SHA=$(git rev-parse "origin/${PLUGIN_COMPARE_BRANCH}")
+if [ -n "${PLUGIN_COMPARE_BRANCH}" ]; then
+    # If compare_branch is set, fetch and compare against it
+    git fetch origin "${PLUGIN_COMPARE_BRANCH}"
+    TARGET_BRANCH_SHA=$(git rev-parse "origin/${PLUGIN_COMPARE_BRANCH}")
 
-if [[ "${PLUGIN_INCLUDE_MERGE_BASE}" == "true" ]]; then
-    # Find the merge-base (common ancestor) between target branch and current commit
-    COMPARE_SHA=$(git merge-base "${TARGET_BRANCH_SHA}" "${CURRENT_SHA}")
+    if [[ "${PLUGIN_INCLUDE_MERGE_BASE}" == "true" ]]; then
+        # Find the merge-base (common ancestor) between target branch and current commit
+        COMPARE_SHA=$(git merge-base "${TARGET_BRANCH_SHA}" "${CURRENT_SHA}")
+    else
+        # Use the head of the target branch
+        COMPARE_SHA=${TARGET_BRANCH_SHA}
+    fi
 else
-    # Use the head of the target branch
-    COMPARE_SHA=${TARGET_BRANCH_SHA}
+    # If no compare_branch is set, compare against previous commit
+    COMPARE_SHA=$(git rev-parse "${CURRENT_SHA}^1")
 fi
 
 # Check if there are any changes
 if [[ -z "$(git diff --numstat "${COMPARE_SHA}" "${CURRENT_SHA}")" ]]; then
-    buildkite-agent annotate "No changes found between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} and ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}" \
-        --context "${PLUGIN_CONTEXT}" \
-        --style "info" \
-        --append
+    if [ -n "${PLUGIN_COMPARE_BRANCH}" ]; then
+        buildkite-agent annotate "No changes found between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} and ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}" \
+            --context "${PLUGIN_CONTEXT}" \
+            --style "info" \
+            --append
+    else
+        buildkite-agent annotate "No changes found between commits ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}" \
+            --context "${PLUGIN_CONTEXT}" \
+            --style "info" \
+            --append
+    fi
     exit 0
 fi
 
@@ -40,7 +52,11 @@ trap 'rm -f "${TEMP_MD}"' EXIT
 
 if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
     # Add header
-    HEADER="Comparing changes between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} to ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}\n"
+    if [ -n "${PLUGIN_COMPARE_BRANCH}" ]; then
+        HEADER="Comparing changes between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} to ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}\n"
+    else
+        HEADER="Comparing changes between commits ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}\n"
+    fi
 
     # shellcheck disable=SC2129
     echo -e "${HEADER}" >> "${TEMP_MD}"
