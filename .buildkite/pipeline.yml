@@ -19,8 +19,3 @@ steps:
           files:
             - hooks/**
             - lib/**
-
-  - label: ":rocket: Test the plugin functionality"
-    command: echo "testing the plugin"
-    plugins:
-      - ssh://git@github.com/mcncl/annotate-git-diff-buildkite-plugin.git: ~
