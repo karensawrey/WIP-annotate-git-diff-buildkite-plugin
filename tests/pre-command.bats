@@ -3,8 +3,16 @@
 setup() {
   load "${BATS_PLUGIN_PATH}/load.bash"
 
-  # Uncomment to enable stub debugging
-  # export GIT_STUB_DEBUG=/dev/tty
+  # Mock plugin.bash functions
+  function plugin_read_config() {
+    case "$1" in
+      "CONTEXT") echo "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_CONTEXT:-git-diff}" ;;
+      "FORMAT") echo "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_FORMAT:-markdown}" ;;
+      "COMPARE_BRANCH") echo "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-main}" ;;
+      "INCLUDE_MERGE_BASE") echo "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_MERGE_BASE:-true}" ;;
+    esac
+  }
+  export -f plugin_read_config
 
   # Common test variables
   export BUILDKITE_COMMIT="current-sha"
@@ -20,30 +28,7 @@ teardown() {
   rm -rf "${BATS_TMPDIR}"
 }
 
-@test "Creates annotation comparing against previous commit when no branch specified" {
-  stub mktemp "echo '${BATS_TMPDIR}/diff.md'"
-
-  stub git \
-    "rev-parse current-sha^1 : echo previous-sha" \
-    "diff --color=always previous-sha current-sha : echo 'diff output'" \
-    "diff --numstat previous-sha current-sha : echo '1  2  file.txt'"
-
-  stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
-
-  run "$PWD"/hooks/pre-command
-
-  assert_success
-  assert_output --partial "Annotation created"
-
-  unstub git
-  unstub buildkite-agent
-  unstub mktemp
-}
-
-@test "Compares against specified branch using merge-base" {
-  export BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH="main"
-  export BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_MERGE_BASE="true"
-
+@test "Compares against main by default" {
   stub mktemp "echo '${BATS_TMPDIR}/diff.md'"
 
   stub git \
@@ -65,24 +50,49 @@ teardown() {
   unstub mktemp
 }
 
-@test "Compares directly against branch head when merge-base disabled" {
-  export BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH="main"
-  export BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_MERGE_BASE="false"
+@test "Compares against specified branch using merge-base" {
+  export BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH="develop"
+  export BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_MERGE_BASE="true"
 
   stub mktemp "echo '${BATS_TMPDIR}/diff.md'"
 
   stub git \
-    "fetch origin main : echo 'Fetching main'" \
-    "rev-parse origin/main : echo main-head-sha" \
-    "diff --color=always main-head-sha current-sha : echo 'diff output'" \
-    "diff --numstat main-head-sha current-sha : echo '1  2  file.txt'"
+    "fetch origin develop : echo 'Fetching develop'" \
+    "merge-base origin/develop current-sha : echo merge-base-sha" \
+    "diff --color=always merge-base-sha current-sha : echo 'diff output'" \
+    "diff --numstat merge-base-sha current-sha : echo '1  2  file.txt'"
 
   stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
 
   run "$PWD"/hooks/pre-command
 
   assert_success
-  assert_output --partial "Fetching main"
+  assert_output --partial "Fetching develop"
+  assert_output --partial "Annotation created"
+
+  unstub git
+  unstub buildkite-agent
+  unstub mktemp
+}
+
+@test "Compares directly against branch head when merge-base disabled" {
+  export BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH="develop"
+  export BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_MERGE_BASE="false"
+
+  stub mktemp "echo '${BATS_TMPDIR}/diff.md'"
+
+  stub git \
+    "fetch origin develop : echo 'Fetching develop'" \
+    "rev-parse origin/develop : echo develop-head-sha" \
+    "diff --color=always develop-head-sha current-sha : echo 'diff output'" \
+    "diff --numstat develop-head-sha current-sha : echo '1  2  file.txt'"
+
+  stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
+
+  run "$PWD"/hooks/pre-command
+
+  assert_success
+  assert_output --partial "Fetching develop"
   assert_output --partial "Annotation created"
 
   unstub git
@@ -94,9 +104,10 @@ teardown() {
   stub mktemp "echo '${BATS_TMPDIR}/diff.md'"
 
   stub git \
-    "rev-parse current-sha^1 : echo previous-sha" \
-    "diff --color=always previous-sha current-sha : echo '+new line'" \
-    "diff --numstat previous-sha current-sha : echo '1  2  file.txt'"
+    "fetch origin main : echo 'Fetching main'" \
+    "merge-base origin/main current-sha : echo merge-base-sha" \
+    "diff --color=always merge-base-sha current-sha : echo '+new line'" \
+    "diff --numstat merge-base-sha current-sha : echo '1  2  file.txt'"
 
   stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
 
@@ -116,8 +127,9 @@ teardown() {
   stub mktemp "echo '${BATS_TMPDIR}/diff.md'"
 
   stub git \
-    "rev-parse current-sha^1 : echo previous-sha" \
-    "diff --color=always previous-sha current-sha : echo 'raw diff output'"
+    "fetch origin main : echo 'Fetching main'" \
+    "merge-base origin/main current-sha : echo merge-base-sha" \
+    "diff --color=always merge-base-sha current-sha : echo 'raw diff output'"
 
   stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
 
@@ -135,9 +147,10 @@ teardown() {
   stub mktemp "echo '${BATS_TMPDIR}/diff.md'"
 
   stub git \
-    "rev-parse current-sha^1 : echo previous-sha" \
-    "diff --color=always previous-sha current-sha : echo ''" \
-    "diff --numstat previous-sha current-sha : echo ''"
+    "fetch origin main : echo 'Fetching main'" \
+    "merge-base origin/main current-sha : echo merge-base-sha" \
+    "diff --color=always merge-base-sha current-sha : echo ''" \
+    "diff --numstat merge-base-sha current-sha : echo ''"
 
   stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
 
