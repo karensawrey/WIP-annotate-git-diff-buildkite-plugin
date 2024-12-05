@@ -10,7 +10,7 @@ Add the following to your `pipeline.yml`:
 steps:
   - command: echo "Running with git diff..."
     plugins:
-      - mcncl/annotate-git-diff#v1.0.0:
+      - mcncl/annotate-git-diff#v1.1.0:
           context: "my-diff"           # optional
           format: "markdown"           # optional (markdown|diff)
           compare_branch: "main"       # optional (defaults to comparing against previous commit)
@@ -51,7 +51,7 @@ Default: `false`
 ```yaml
 steps:
   - plugins:
-      - mcncl/annotate-git-diff#v1.0.0:
+      - mcncl/annotate-git-diff#v1.1.0:
           compare_branch: "main"
 ```
 
@@ -59,7 +59,7 @@ steps:
 ```yaml
 steps:
   - plugins:
-      - mcncl/annotate-git-diff#v1.0.0:
+      - mcncl/annotate-git-diff#v1.1.0:
           compare_commits: 3  # Shows changes in last 3 commits
 ```
 
@@ -67,7 +67,7 @@ steps:
 ```yaml
 steps:
   - plugins:
-      - mcncl/annotate-git-diff#v1.0.0:
+      - mcncl/annotate-git-diff#v1.1.0:
           compare_branch: "main"
           include_submodules: true
 ```
@@ -76,7 +76,7 @@ steps:
 ```yaml
 steps:
   - plugins:
-      - mcncl/annotate-git-diff#v1.0.0:
+      - mcncl/annotate-git-diff#v1.1.0:
           format: "diff"
 ```
 
