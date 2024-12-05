@@ -23,5 +23,4 @@ steps:
   - label: ":rocket: Test the plugin functionality"
     command: echo "testing the plugin"
     plugins:
-      - ssh://git@github.com/mcncl/annotate-git-diff-buildkite-plugin.git:
-          compare_branch: "main"
+      - ssh://git@github.com/mcncl/annotate-git-diff-buildkite-plugin.git: ~
