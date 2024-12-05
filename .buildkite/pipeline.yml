@@ -11,7 +11,7 @@ steps:
   - label: ":sparkles: Lint"
     plugins:
       - plugin-linter#v3.3.0:
-          id: annotate-git-diff
+          id: mcncl/annotate-git-diff
 
   - label: ":shell: Shellcheck"
     plugins:
