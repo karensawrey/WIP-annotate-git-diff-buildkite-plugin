@@ -33,7 +33,8 @@ teardown() {
 
   stub git \
     "fetch origin main : echo 'Fetching main'" \
-    "merge-base origin/main current-sha : echo merge-base-sha" \
+    "rev-parse origin/main : echo target-branch-sha" \
+    "merge-base target-branch-sha current-sha : echo merge-base-sha" \
     "diff --numstat merge-base-sha current-sha : echo '1  2  file.txt'" \
     "diff --color=always merge-base-sha current-sha : echo 'diff output'" \
     "diff --numstat merge-base-sha current-sha : echo '1  2  file.txt'"
@@ -59,7 +60,8 @@ teardown() {
 
   stub git \
     "fetch origin develop : echo 'Fetching develop'" \
-    "merge-base origin/develop current-sha : echo merge-base-sha" \
+    "rev-parse origin/develop : echo target-branch-sha" \
+    "merge-base target-branch-sha current-sha : echo merge-base-sha" \
     "diff --numstat merge-base-sha current-sha : echo '1  2  file.txt'" \
     "diff --color=always merge-base-sha current-sha : echo 'diff output'" \
     "diff --numstat merge-base-sha current-sha : echo '1  2  file.txt'"
@@ -85,10 +87,10 @@ teardown() {
 
   stub git \
     "fetch origin develop : echo 'Fetching develop'" \
-    "rev-parse origin/develop : echo develop-head-sha" \
-    "diff --numstat develop-head-sha current-sha : echo '1  2  file.txt'" \
-    "diff --color=always develop-head-sha current-sha : echo 'diff output'" \
-    "diff --numstat develop-head-sha current-sha : echo '1  2  file.txt'"
+    "rev-parse origin/develop : echo target-branch-sha" \
+    "diff --numstat target-branch-sha current-sha : echo '1  2  file.txt'" \
+    "diff --color=always target-branch-sha current-sha : echo 'diff output'" \
+    "diff --numstat target-branch-sha current-sha : echo '1  2  file.txt'"
 
   stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
 
@@ -108,7 +110,8 @@ teardown() {
 
   stub git \
     "fetch origin main : echo 'Fetching main'" \
-    "merge-base origin/main current-sha : echo merge-base-sha" \
+    "rev-parse origin/main : echo target-branch-sha" \
+    "merge-base target-branch-sha current-sha : echo merge-base-sha" \
     "diff --numstat merge-base-sha current-sha : echo '1  2  file.txt'" \
     "diff --color=always merge-base-sha current-sha : echo '+new line'" \
     "diff --numstat merge-base-sha current-sha : echo '1  2  file.txt'"
@@ -132,7 +135,8 @@ teardown() {
 
   stub git \
     "fetch origin main : echo 'Fetching main'" \
-    "merge-base origin/main current-sha : echo merge-base-sha" \
+    "rev-parse origin/main : echo target-branch-sha" \
+    "merge-base target-branch-sha current-sha : echo merge-base-sha" \
     "diff --numstat merge-base-sha current-sha : echo '1  2  file.txt'" \
     "diff --color=always merge-base-sha current-sha : echo 'raw diff output'"
 
@@ -151,7 +155,8 @@ teardown() {
 @test "Handles empty diff output" {
   stub git \
     "fetch origin main : echo 'Fetching main'" \
-    "merge-base origin/main current-sha : echo merge-base-sha" \
+    "rev-parse origin/main : echo target-branch-sha" \
+    "merge-base target-branch-sha current-sha : echo merge-base-sha" \
     "diff --numstat merge-base-sha current-sha : echo ''"
 
   stub buildkite-agent \
