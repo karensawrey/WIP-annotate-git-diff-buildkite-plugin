@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PLUGIN_CONTEXT=${BUILDKITE_PLUGIN_GIT_DIFF_CONTEXT:-"git-diff"}
-PLUGIN_FORMAT=${BUILDKITE_PLUGIN_GIT_DIFF_FORMAT:-"markdown"}
-PLUGIN_COMPARE_BRANCH=${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-"main"}
-PLUGIN_INCLUDE_MERGE_BASE=${BUILDKITE_PLUGIN_GIT_DIFF_INCLUDE_MERGE_BASE:-"true"}
+PLUGIN_CONTEXT=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_CONTEXT:-"git-diff"}
+PLUGIN_FORMAT=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_FORMAT:-"markdown"}
+PLUGIN_COMPARE_BRANCH=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-"main"}
+PLUGIN_INCLUDE_MERGE_BASE=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_MERGE_BASE:-"true"}
 
 # Get current SHA
 CURRENT_SHA=${BUILDKITE_COMMIT}
 
-if [ -n "${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
+if [ -n "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
     # If compare_branch is set, fetch and compare against it
     git fetch origin "${PLUGIN_COMPARE_BRANCH}"
 
@@ -31,7 +31,7 @@ trap 'rm -f "${TEMP_MD}"' EXIT
 
 if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
     # Add header
-    if [ -n "${BUILDKITE_PLUGIN_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
+    if [ -n "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
         echo "### Git Diff: '${BUILDKITE_BRANCH}' vs '${PLUGIN_COMPARE_BRANCH}'" > "${TEMP_MD}"
     else
         echo "### Git Diff: Previous commit" > "${TEMP_MD}"
@@ -42,7 +42,7 @@ if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
     # Add diff with terminal colors
     {
         echo '```term'
-        git diff --color=always "${COMPARE_SHA}" "${CURRENT_SHA}"
+        git diff --color=never "${COMPARE_SHA}" "${CURRENT_SHA}"
         echo '```'
     } >> "${TEMP_MD}"
 
@@ -62,8 +62,8 @@ if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
         ')"
     } >> "${TEMP_MD}"
 else
-    # Raw diff format with terminal colors
-    git diff --color=always "${COMPARE_SHA}" "${CURRENT_SHA}" > "${TEMP_MD}"
+    # Raw diff format
+    git diff --color=never "${COMPARE_SHA}" "${CURRENT_SHA}" > "${TEMP_MD}"
 fi
 
 buildkite-agent annotate "$(cat "${TEMP_MD}")" \
