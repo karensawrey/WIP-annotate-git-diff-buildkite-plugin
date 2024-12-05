@@ -9,7 +9,7 @@ PLUGIN_INCLUDE_MERGE_BASE=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_MERGE_BAS
 # Get current SHA
 CURRENT_SHA=${BUILDKITE_COMMIT}
 
-if [ -n "${PLUGIN_COMPARE_BRANCH}" ]; then
+if [ -n "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
     # If compare_branch is set, fetch and compare against it
     git fetch origin "${PLUGIN_COMPARE_BRANCH}"
 
@@ -31,7 +31,7 @@ trap 'rm -f "${TEMP_MD}"' EXIT
 
 if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
     # Add header
-    if [ -n "${PLUGIN_COMPARE_BRANCH}" ]; then
+    if [ -n "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
         HEADER="Comparing changes between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} to ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}\n"
     else
         HEADER="Comparing changes between ${COMPARE_SHA:0:8} to ${CURRENT_SHA:0:8}\n"
