@@ -24,6 +24,15 @@ else
     COMPARE_SHA=$(git rev-parse "origin/${PLUGIN_COMPARE_BRANCH}")
 fi
 
+# Check if there are any changes
+if [[ -z "$(git diff --numstat "${COMPARE_SHA}" "${CURRENT_SHA}")" ]]; then
+    buildkite-agent annotate "No changes found between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} and ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}" \
+        --context "${PLUGIN_CONTEXT}" \
+        --style "info" \
+        --append
+    exit 0
+fi
+
 # Create temporary markdown file
 TEMP_MD=$(mktemp)
 trap 'rm -f "${TEMP_MD}"' EXIT
