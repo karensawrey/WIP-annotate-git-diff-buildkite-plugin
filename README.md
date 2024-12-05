@@ -10,7 +10,7 @@ Add the following to your `pipeline.yml`:
 steps:
   - command: echo "Running with git diff..."
     plugins:
-      - annotate-git-fidd#v1.0.0:
+      - annotate-git-diff#v1.0.0:
           context: "my-diff"  # optional
           format: "markdown"  # optional (markdown|diff)
           compare_branch: "main"       # optional (defaults to main)
