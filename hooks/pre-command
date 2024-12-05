@@ -7,11 +7,19 @@ set -euo pipefail
 # Get plugin configuration
 PLUGIN_CONTEXT=$(plugin_read_config "CONTEXT" "git-diff")
 PLUGIN_FORMAT=$(plugin_read_config "FORMAT" "markdown")
-PLUGIN_COMPARE_BRANCH=$(plugin_read_config "COMPARE_BRANCH" "")  # Default to empty
+PLUGIN_COMPARE_BRANCH=$(plugin_read_config "COMPARE_BRANCH" "")  # Default to empty which is treated as current branch
+PLUGIN_COMPARE_COMMITS=$(plugin_read_config "COMPARE_COMMITS" "1")
 PLUGIN_INCLUDE_MERGE_BASE=$(plugin_read_config "INCLUDE_MERGE_BASE" "true")
+PLUGIN_INCLUDE_SUBMODULES=$(plugin_read_config "INCLUDE_SUBMODULES" "false")
 
 # Get current SHA
 CURRENT_SHA=${BUILDKITE_COMMIT}
+
+# Set up git diff flags
+DIFF_FLAGS=""
+if [[ "${PLUGIN_INCLUDE_SUBMODULES}" == "true" ]]; then
+    DIFF_FLAGS="--submodule=diff"
+fi
 
 if [ -n "${PLUGIN_COMPARE_BRANCH}" ]; then
     # If compare_branch is set, fetch and compare against it
@@ -26,22 +34,29 @@ if [ -n "${PLUGIN_COMPARE_BRANCH}" ]; then
         COMPARE_SHA=${TARGET_BRANCH_SHA}
     fi
 else
-    # If no compare_branch is set, compare against previous commit
-    COMPARE_SHA=$(git rev-parse "${CURRENT_SHA}^1")
+    # If no compare_branch is set, compare against N commits back
+    COMPARE_SHA=$(git rev-parse "${CURRENT_SHA}~${PLUGIN_COMPARE_COMMITS}")
 fi
 
 # Check if there are any changes
-if [[ -z "$(git diff --numstat "${COMPARE_SHA}" "${CURRENT_SHA}")" ]]; then
+if [[ -z "$(git diff --numstat ${DIFF_FLAGS} "${COMPARE_SHA}" "${CURRENT_SHA}")" ]]; then
     if [ -n "${PLUGIN_COMPARE_BRANCH}" ]; then
         buildkite-agent annotate "No changes found between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} and ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}" \
             --context "${PLUGIN_CONTEXT}" \
             --style "info" \
             --append
     else
-        buildkite-agent annotate "No changes found between commits ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}" \
-            --context "${PLUGIN_CONTEXT}" \
-            --style "info" \
-            --append
+        if [[ "${PLUGIN_COMPARE_COMMITS}" -eq 1 ]]; then
+            buildkite-agent annotate "No changes found between commits ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}" \
+                --context "${PLUGIN_CONTEXT}" \
+                --style "info" \
+                --append
+        else
+            buildkite-agent annotate "No changes found in the last ${PLUGIN_COMPARE_COMMITS} commits (${COMPARE_SHA:0:8} to ${CURRENT_SHA:0:8})" \
+                --context "${PLUGIN_CONTEXT}" \
+                --style "info" \
+                --append
+        fi
     fi
     exit 0
 fi
@@ -55,7 +70,11 @@ if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
     if [ -n "${PLUGIN_COMPARE_BRANCH}" ]; then
         HEADER="Comparing changes between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} to ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}\n"
     else
-        HEADER="Comparing changes between commits ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}\n"
+        if [[ "${PLUGIN_COMPARE_COMMITS}" -eq 1 ]]; then
+            HEADER="Comparing changes between commits ${COMPARE_SHA:0:8} and ${CURRENT_SHA:0:8}\n"
+        else
+            HEADER="Comparing changes in the last ${PLUGIN_COMPARE_COMMITS} commits (${COMPARE_SHA:0:8} to ${CURRENT_SHA:0:8})\n"
+        fi
     fi
 
     # shellcheck disable=SC2129
@@ -64,14 +83,14 @@ if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
     # Add diff with terminal colors
     {
         echo '```term'
-        git diff --color=always "${COMPARE_SHA}" "${CURRENT_SHA}"
+        git diff --color=always ${DIFF_FLAGS} "${COMPARE_SHA}" "${CURRENT_SHA}"
         echo '```'
     } >> "${TEMP_MD}"
 
     # Add summary
     {
         echo
-        echo "**Summary:** $(git diff --numstat "${COMPARE_SHA}" "${CURRENT_SHA}" | awk '
+        echo "**Summary:** $(git diff --numstat ${DIFF_FLAGS} "${COMPARE_SHA}" "${CURRENT_SHA}" | awk '
             BEGIN { additions = 0; deletions = 0; files = 0 }
             {
                 additions += $1;
@@ -85,7 +104,7 @@ if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
     } >> "${TEMP_MD}"
 else
     # Raw diff format
-    git diff --color=always "${COMPARE_SHA}" "${CURRENT_SHA}" > "${TEMP_MD}"
+    git diff --color=always ${DIFF_FLAGS} "${COMPARE_SHA}" "${CURRENT_SHA}" > "${TEMP_MD}"
 fi
 
 buildkite-agent annotate "$(cat "${TEMP_MD}")" \

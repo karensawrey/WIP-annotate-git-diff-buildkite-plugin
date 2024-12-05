@@ -14,8 +14,15 @@ configuration:
       default: "markdown"
     compare_branch:
       type: string
-      default: "main"
+      default: ""
+    compare_commits:
+      type: integer
+      default: 1
+      minimum: 1
     include_merge_base:
       type: boolean
       default: true
+    include_submodules:
+      type: boolean
+      default: false
   additionalProperties: false

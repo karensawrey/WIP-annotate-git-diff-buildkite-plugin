@@ -9,7 +9,9 @@ setup() {
       "CONTEXT") echo "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_CONTEXT:-git-diff}" ;;
       "FORMAT") echo "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_FORMAT:-markdown}" ;;
       "COMPARE_BRANCH") echo "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-}" ;;
+      "COMPARE_COMMITS") echo "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_COMMITS:-1}" ;;
       "INCLUDE_MERGE_BASE") echo "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_MERGE_BASE:-true}" ;;
+      "INCLUDE_SUBMODULES") echo "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_SUBMODULES:-false}" ;;
     esac
   }
   export -f plugin_read_config
@@ -32,7 +34,7 @@ teardown() {
   stub mktemp "echo '${BATS_TMPDIR}/diff.md'"
 
   stub git \
-    "rev-parse current-sha^1 : echo previous-sha" \
+    "rev-parse current-sha~1 : echo previous-sha" \
     "diff --numstat previous-sha current-sha : echo '1  2  file.txt'" \
     "diff --color=always previous-sha current-sha : echo 'diff output'" \
     "diff --numstat previous-sha current-sha : echo '1  2  file.txt'"
@@ -106,7 +108,7 @@ teardown() {
   stub mktemp "echo '${BATS_TMPDIR}/diff.md'"
 
   stub git \
-    "rev-parse current-sha^1 : echo previous-sha" \
+    "rev-parse current-sha~1 : echo previous-sha" \
     "diff --numstat previous-sha current-sha : echo '1  2  file.txt'" \
     "diff --color=always previous-sha current-sha : echo '+new line'" \
     "diff --numstat previous-sha current-sha : echo '1  2  file.txt'"
@@ -129,7 +131,7 @@ teardown() {
   stub mktemp "echo '${BATS_TMPDIR}/diff.md'"
 
   stub git \
-    "rev-parse current-sha^1 : echo previous-sha" \
+    "rev-parse current-sha~1 : echo previous-sha" \
     "diff --numstat previous-sha current-sha : echo '1  2  file.txt'" \
     "diff --color=always previous-sha current-sha : echo 'raw diff output'"
 
@@ -147,7 +149,7 @@ teardown() {
 
 @test "Handles empty diff output" {
   stub git \
-    "rev-parse current-sha^1 : echo previous-sha" \
+    "rev-parse current-sha~1 : echo previous-sha" \
     "diff --numstat previous-sha current-sha : echo ''"
 
   stub buildkite-agent \
@@ -160,4 +162,27 @@ teardown() {
 
   unstub git
   unstub buildkite-agent
+}
+
+@test "Detects submodule changes when enabled" {
+  export BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_SUBMODULES="true"
+
+  stub mktemp "echo '${BATS_TMPDIR}/diff.md'"
+
+  stub git \
+    "rev-parse current-sha~1 : echo previous-sha" \
+    "diff --numstat --submodule=diff previous-sha current-sha : echo '1  2  src/submodules/mymodule'" \
+    "diff --color=always --submodule=diff previous-sha current-sha : echo 'Submodule src/submodules/mymodule updated 1234abc..5678def'" \
+    "diff --numstat --submodule=diff previous-sha current-sha : echo '1  2  src/submodules/mymodule'"
+
+  stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
+
+  run "$PWD"/hooks/pre-command
+
+  assert_success
+  assert_output --partial "Annotation created"
+
+  unstub git
+  unstub buildkite-agent
+  unstub mktemp
 }
