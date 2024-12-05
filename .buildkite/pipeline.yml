@@ -25,4 +25,3 @@ steps:
     plugins:
       - ssh://git@github.com/mcncl/git-diff-buildkite-plugin.git:
           compare_branch: "main"
-          include_merge_base: false
