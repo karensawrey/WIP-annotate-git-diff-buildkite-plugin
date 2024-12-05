@@ -13,7 +13,7 @@ steps:
       - annotate-git-diff#v1.0.0:
           context: "my-diff"  # optional
           format: "markdown"  # optional (markdown|diff)
-          compare_branch: "main"       # optional (defaults to main)
+          compare_branch: "main"       # optional (defaults to the current branch)
           include_merge_base: true     # optional (defaults to true)
 ```
 
@@ -26,7 +26,7 @@ The annotation context. Default: `git-diff`
 The output format for the diff. Can be either `markdown` or `diff`. Default: `markdown`
 
 ### `compare_branch` (optional)
-The branch to compare against. Default: `main`
+The branch to compare against. Default: `the current branch`
 
 ### `include_merge_base` (optional)
 When `true`, compares against the common ancestor of the current commit and target branch.

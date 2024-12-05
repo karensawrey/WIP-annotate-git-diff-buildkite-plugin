@@ -1,28 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PLUGIN_CONTEXT=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_CONTEXT:-"git-diff"}
-PLUGIN_FORMAT=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_FORMAT:-"markdown"}
-PLUGIN_COMPARE_BRANCH=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-"main"}
-PLUGIN_INCLUDE_MERGE_BASE=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_MERGE_BASE:-"true"}
+# shellcheck source=lib/plugin.bash
+. "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../lib/plugin.bash"
+
+# Get plugin configuration
+PLUGIN_CONTEXT=$(plugin_read_config "CONTEXT" "git-diff")
+PLUGIN_FORMAT=$(plugin_read_config "FORMAT" "markdown")
+PLUGIN_COMPARE_BRANCH=$(plugin_read_config "COMPARE_BRANCH" "main")
+PLUGIN_INCLUDE_MERGE_BASE=$(plugin_read_config "INCLUDE_MERGE_BASE" "true")
 
 # Get current SHA
 CURRENT_SHA=${BUILDKITE_COMMIT}
 
-if [ -n "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
-    # If compare_branch is set, fetch and compare against it
-    git fetch origin "${PLUGIN_COMPARE_BRANCH}"
+# If compare_branch is set, fetch and compare against it
+git fetch origin "${PLUGIN_COMPARE_BRANCH}"
 
-    if [[ "${PLUGIN_INCLUDE_MERGE_BASE}" == "true" ]]; then
-        # Find the merge-base (common ancestor) between current commit and target branch
-        COMPARE_SHA=$(git merge-base "origin/${PLUGIN_COMPARE_BRANCH}" "${CURRENT_SHA}")
-    else
-        # Use the head of the target branch
-        COMPARE_SHA=$(git rev-parse "origin/${PLUGIN_COMPARE_BRANCH}")
-    fi
+if [[ "${PLUGIN_INCLUDE_MERGE_BASE}" == "true" ]]; then
+    # Find the merge-base (common ancestor) between current commit and target branch
+    COMPARE_SHA=$(git merge-base "origin/${PLUGIN_COMPARE_BRANCH}" "${CURRENT_SHA}")
 else
-    # If no compare_branch is set, compare against previous commit
-    COMPARE_SHA=$(git rev-parse "${CURRENT_SHA}^1")
+    # Use the head of the target branch
+    COMPARE_SHA=$(git rev-parse "origin/${PLUGIN_COMPARE_BRANCH}")
 fi
 
 # Create temporary markdown file
@@ -31,11 +30,7 @@ trap 'rm -f "${TEMP_MD}"' EXIT
 
 if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
     # Add header
-    if [ -n "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
-        HEADER="Comparing changes between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} to ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}\n"
-    else
-        HEADER="Comparing changes between ${COMPARE_SHA:0:8} to ${CURRENT_SHA:0:8}\n"
-    fi
+    HEADER="Comparing changes between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} to ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}\n"
 
     # shellcheck disable=SC2129
     echo -e "${HEADER}" >> "${TEMP_MD}"
