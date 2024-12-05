@@ -20,8 +20,8 @@ steps:
             - hooks/**
             - lib/**
 
-  - label: ":testtube: Test the plugin functionality"
+  - label: ":rocket: Test the plugin functionality"
     command: echo "testing the plugin"
     plugins:
-      - ssh://git@github.com/mcncl/git-diff-buildkite-plugin.git:
+      - ssh://git@github.com/mcncl/annotate-git-diff-buildkite-plugin.git:
           compare_branch: "main"
