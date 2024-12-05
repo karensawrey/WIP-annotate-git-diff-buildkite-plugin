@@ -37,6 +37,7 @@ if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
         HEADER="Comparing changes between ${COMPARE_SHA:0:8} to ${CURRENT_SHA:0:8}\n"
     fi
 
+    # shellcheck disable=SC2129
     echo -e "${HEADER}" >> "${TEMP_MD}"
 
     # Add diff with terminal colors
