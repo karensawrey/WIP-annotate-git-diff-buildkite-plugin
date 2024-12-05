@@ -25,7 +25,7 @@ teardown() {
 
   stub git \
     "rev-parse current-sha^1 : echo previous-sha" \
-    "diff --color=never previous-sha current-sha : echo 'diff output'" \
+    "diff --color=always previous-sha current-sha : echo 'diff output'" \
     "diff --numstat previous-sha current-sha : echo '1  2  file.txt'"
 
   stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
@@ -49,7 +49,7 @@ teardown() {
   stub git \
     "fetch origin main : echo 'Fetching main'" \
     "merge-base origin/main current-sha : echo merge-base-sha" \
-    "diff --color=never merge-base-sha current-sha : echo 'diff output'" \
+    "diff --color=always merge-base-sha current-sha : echo 'diff output'" \
     "diff --numstat merge-base-sha current-sha : echo '1  2  file.txt'"
 
   stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
@@ -74,7 +74,7 @@ teardown() {
   stub git \
     "fetch origin main : echo 'Fetching main'" \
     "rev-parse origin/main : echo main-head-sha" \
-    "diff --color=never main-head-sha current-sha : echo 'diff output'" \
+    "diff --color=always main-head-sha current-sha : echo 'diff output'" \
     "diff --numstat main-head-sha current-sha : echo '1  2  file.txt'"
 
   stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
@@ -95,7 +95,7 @@ teardown() {
 
   stub git \
     "rev-parse current-sha^1 : echo previous-sha" \
-    "diff --color=never previous-sha current-sha : echo '+new line'" \
+    "diff --color=always previous-sha current-sha : echo '+new line'" \
     "diff --numstat previous-sha current-sha : echo '1  2  file.txt'"
 
   stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
@@ -117,7 +117,7 @@ teardown() {
 
   stub git \
     "rev-parse current-sha^1 : echo previous-sha" \
-    "diff --color=never previous-sha current-sha : echo 'raw diff output'"
+    "diff --color=always previous-sha current-sha : echo 'raw diff output'"
 
   stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
 
@@ -136,7 +136,7 @@ teardown() {
 
   stub git \
     "rev-parse current-sha^1 : echo previous-sha" \
-    "diff --color=never previous-sha current-sha : echo ''" \
+    "diff --color=always previous-sha current-sha : echo ''" \
     "diff --numstat previous-sha current-sha : echo ''"
 
   stub buildkite-agent "annotate '*' --context '*' --style 'info' --append : echo Annotation created"
