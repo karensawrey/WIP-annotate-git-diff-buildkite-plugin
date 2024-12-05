@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Default configurations with empty compare_branch
 PLUGIN_CONTEXT=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_CONTEXT:-"git-diff"}
 PLUGIN_FORMAT=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_FORMAT:-"markdown"}
-PLUGIN_COMPARE_BRANCH=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-"main"}
+PLUGIN_COMPARE_BRANCH=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-}
 PLUGIN_INCLUDE_MERGE_BASE=${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_INCLUDE_MERGE_BASE:-"true"}
 
 # Get current SHA
 CURRENT_SHA=${BUILDKITE_COMMIT}
 
-if [ -n "${PLUGIN_COMPARE_BRANCH}" ]; then
-    # If compare_branch is set, fetch and compare against it
+if [ -n "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
+    # If compare_branch is explicitly set, fetch and compare against it
     git fetch origin "${PLUGIN_COMPARE_BRANCH}"
 
     if [[ "${PLUGIN_INCLUDE_MERGE_BASE}" == "true" ]]; then
@@ -31,7 +32,7 @@ trap 'rm -f "${TEMP_MD}"' EXIT
 
 if [[ "${PLUGIN_FORMAT}" == "markdown" ]]; then
     # Add header
-    if [ -n "${PLUGIN_COMPARE_BRANCH}" ]; then
+    if [ -n "${BUILDKITE_PLUGIN_ANNOTATE_GIT_DIFF_COMPARE_BRANCH:-}" ]; then
         HEADER="Comparing changes between ${COMPARE_SHA:0:8} on ${PLUGIN_COMPARE_BRANCH} to ${CURRENT_SHA:0:8} on ${BUILDKITE_BRANCH}\n"
     else
         HEADER="Comparing changes between ${COMPARE_SHA:0:8} to ${CURRENT_SHA:0:8}\n"
