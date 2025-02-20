@@ -1,6 +1,6 @@
 # Git Diff Buildkite Plugin
 
-A Buildkite plugin that shows git diff as a build annotation. You can compare against a target branch, a specific number of previous commits, or include submodule changes.
+A Buildkite plugin that shows git diff as a build annotation. You can compare against a target branch, a specific number of previous commits, include submodule changes, or compare a build against previous build.
 
 ## Example
 
