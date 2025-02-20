@@ -17,6 +17,7 @@ steps:
           compare_commits: 3           # optional (compare against 3 commits back, ignored if compare_branch is set)
           include_merge_base: true     # optional (defaults to true)
           include_submodules: false    # optional (defaults to false)
+          compare_previous_build: false    # optional (defaults to false)
 ```
 
 ## Configuration
@@ -45,6 +46,12 @@ Whether to include submodule changes in the diff output.
 - `false`: Excludes submodule changes
 Default: `false`
 
+### `compare_previous_build` (optional)
+Whether to compare a build to the previous build. You'll need to provide an API access token with `read_builds` permissions to run this check
+- `true`: Shows submodule changes in diff and includes them in statistics
+- `false`: Does not compare a build to the previous build
+Default: `false`
+
 ## Usage Examples
 
 ### Compare against a branch:
@@ -70,6 +77,15 @@ steps:
       - annotate-git-diff#v1.1.0:
           compare_branch: "main"
           include_submodules: true
+```
+
+### Compare a build to a previous build:
+```yaml
+steps:
+  - plugins:
+      - annotate-git-diff#v1.1.0:
+          compare_previous_build: true
+          buildkite_api_token: ${BUILDKITE_API_TOKEN} # API access token with `read_builds` permissions
 ```
 
 ### Raw diff format:
