@@ -49,6 +49,9 @@ if [[ "${PLUGIN_COMPARE_PREVIOUS_BUILD}" == "true" ]]; then
     # Determine the previous build's commit SHA.
     # If the first build in the response is the current build, then select the second one.
     # Otherwise, use the first build.
+
+    # Also a TODO: add a check in case the API call fails
+
     PREVIOUS_BUILD_SHA=$(echo "${API_RESPONSE}" | \
         jq -r --arg current "$BUILDKITE_BUILD_NUMBER" 'if (.[0].number | tostring) == $current then .[1].commit else .[0].commit end')
 
