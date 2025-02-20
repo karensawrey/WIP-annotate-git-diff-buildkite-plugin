@@ -24,29 +24,18 @@ if [[ "${PLUGIN_INCLUDE_SUBMODULES}" == "true" ]]; then
 fi
 
 if [[ "${PLUGIN_COMPARE_PREVIOUS_BUILD}" == "true" ]]; then
-    # Validate required environment variables and token
+    # Validate if the API access token is present
     if [[ -z "${PLUGIN_BUILDKITE_API_TOKEN}" ]]; then
         echo "Error: BUILDKITE_API_TOKEN is required when compare_previous_build is true"
         exit 1
     fi
 
-    if [[ -z "${BUILDKITE_ORGANIZATION_SLUG:-}" || -z "${BUILDKITE_PIPELINE_SLUG:-}" ]]; then
-        echo "Error: BUILDKITE_ORGANIZATION_SLUG and BUILDKITE_PIPELINE_SLUG must be set"
-        exit 1
-    fi
 
     # Fetch the last two passed builds on the branch, sorted by descending build number.
-    # This returns the current build (if it's passed) and the immediately previous build.
+    # This returns the current build (if it's passed) and the immediately previous build. 
+    # TODO: Pretty sure I've implemented this API call wrong and need to break it down into several steps
     API_RESPONSE=$(curl -s -f -H "Authorization: Bearer ${PLUGIN_BUILDKITE_API_TOKEN}" \
         "https://api.buildkite.com/v2/organizations/${BUILDKITE_ORGANIZATION_SLUG}/pipelines/${BUILDKITE_PIPELINE_SLUG}/builds?branch=${BUILDKITE_BRANCH}&state=passed&sort=-number&per_page=2" || true)
-
-    if [[ -z "${API_RESPONSE}" ]]; then
-        buildkite-agent annotate "Error: Failed to fetch build history from Buildkite API" \
-            --context "${PLUGIN_CONTEXT}" \
-            --style "error" \
-            --append
-        exit 1
-    fi
 
     # Determine the previous build's commit SHA.
     # If the first build in the response is the current build, then select the second one.
@@ -172,4 +161,3 @@ buildkite-agent annotate "$(cat "${TEMP_MD}")" \
     --context "${PLUGIN_CONTEXT}" \
     --style "info" \
     --append
-    
