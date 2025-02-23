@@ -85,7 +85,7 @@ steps:
   - plugins:
       - annotate-git-diff#v1.1.0:
           compare_previous_build: true
-          buildkite_api_token: ${BUILDKITE_API_TOKEN} # API access token with `read_builds` permissions
+          buildkite_api_token: $${BUILDKITE_API_TOKEN} # API access token with `read_builds` permissions
 ```
 
 ### Raw diff format:
