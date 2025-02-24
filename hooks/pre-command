@@ -43,7 +43,7 @@ if [[ "${PLUGIN_COMPARE_PREVIOUS_BUILD}" == "true" ]]; then
         exit 1
     fi
 
-    # First, validate basic JSON structure
+    # Validating the basic JSON structure
     if ! echo "${API_RESPONSE}" | grep -q '^\[.*\]$'; then
         buildkite-agent annotate "Invalid JSON response format" \
             --context "${PLUGIN_CONTEXT}" \
@@ -52,7 +52,7 @@ if [[ "${PLUGIN_COMPARE_PREVIOUS_BUILD}" == "true" ]]; then
         exit 1
     fi
 
-    # Remove whitespace and split objects more reliably
+    # Removing whitespace, splitting objects
     builds=$(echo "${API_RESPONSE}" | tr -d '\n\r\t ' | sed -e 's/^\[//' -e 's/\]$//' -e 's/\},{/}\n{/g')
     first_build=$(echo "$builds" | head -n1)
     second_build=$(echo "$builds" | sed -n '2p')
@@ -65,7 +65,7 @@ if [[ "${PLUGIN_COMPARE_PREVIOUS_BUILD}" == "true" ]]; then
         exit 1
     fi
 
-    # Extract values using more specific patterns
+    # Extracting values 
     first_number=$(echo "$first_build" | grep -o '"number":[0-9]*' | sed 's/"number"://')
     first_commit=$(echo "$first_build" | grep -o '"commit":"[a-f0-9]*"' | sed 's/"commit":"//' | sed 's/"//')
 
@@ -75,7 +75,7 @@ if [[ "${PLUGIN_COMPARE_PREVIOUS_BUILD}" == "true" ]]; then
         second_commit=""
     fi
 
-    # Validate extracted values
+    # Validating extracted values
     if [ -z "$first_number" ] || [ -z "$first_commit" ]; then
         buildkite-agent annotate "Failed to extract build information from API response" \
             --context "${PLUGIN_CONTEXT}" \
@@ -84,7 +84,7 @@ if [[ "${PLUGIN_COMPARE_PREVIOUS_BUILD}" == "true" ]]; then
         exit 1
     fi
 
-    # Determine which commit to use
+    # Determining which commit to use
     if [ "$first_number" = "$BUILDKITE_BUILD_NUMBER" ] && [ -n "$second_commit" ]; then
         PREVIOUS_BUILD_SHA=$second_commit
     else
@@ -99,7 +99,7 @@ if [[ "${PLUGIN_COMPARE_PREVIOUS_BUILD}" == "true" ]]; then
         exit 0
     fi
 
-    # Validate that we can fetch the commit
+    # Validating that the commit can be fetched
     if ! git cat-file -e "${PREVIOUS_BUILD_SHA}^{commit}" 2>/dev/null; then
         echo "Fetching commit ${PREVIOUS_BUILD_SHA} from remote..."
         if ! git fetch origin "${PREVIOUS_BUILD_SHA}"; then
